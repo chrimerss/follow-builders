@@ -1,0 +1,58 @@
+name: Digest to Telegram
+
+on:
+  schedule:
+    # Daily at 6:30 AM UTC — 30 min after the feed generation runs at 6:00 AM
+    - cron: '30 6 * * *'
+
+  workflow_run:
+    workflows: ["Generate Feeds"]
+    types:
+      - completed
+
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'OpenAI model to use'
+        required: false
+        default: 'gpt-4o'
+        type: choice
+        options:
+          - gpt-4o
+          - gpt-4o-mini
+          - gpt-4-turbo
+      language:
+        description: 'Digest language'
+        required: false
+        default: 'English'
+        type: string
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    # Skip when triggered by workflow_run if the upstream workflow did not succeed
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd scripts && npm install
+
+      - name: Generate and send digest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          OPENAI_MODEL: ${{ inputs.model || 'gpt-4o' }}
+          DIGEST_LANGUAGE: ${{ inputs.language || 'English' }}
+        run: node scripts/generate-digest.js
