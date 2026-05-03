@@ -1,0 +1,57 @@
+name: Deliver Feed to Telegram
+
+on:
+  # Daily at 7:00 AM UTC — upstream feed generation runs at 6:00 AM
+  schedule:
+    - cron: '0 7 * * *'
+
+  # Manual trigger — for testing or on-demand delivery
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: 'Upstream repo to pull feeds from (owner/repo)'
+        required: false
+        default: 'zarazhangrui/follow-builders'
+      upstream_branch:
+        description: 'Branch to pull from'
+        required: false
+        default: 'main'
+      max_tweets:
+        description: 'Max tweets to include'
+        required: false
+        default: '20'
+      max_podcasts:
+        description: 'Max podcast episodes'
+        required: false
+        default: '8'
+      max_blogs:
+        description: 'Max blog posts'
+        required: false
+        default: '10'
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd scripts && npm ci
+
+      - name: Deliver feed to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          UPSTREAM_REPO:      ${{ inputs.upstream_repo   || 'zarazhangrui/follow-builders' }}
+          UPSTREAM_BRANCH:    ${{ inputs.upstream_branch || 'main' }}
+          MAX_TWEETS:         ${{ inputs.max_tweets      || '20' }}
+          MAX_PODCASTS:       ${{ inputs.max_podcasts    || '8'  }}
+          MAX_BLOGS:          ${{ inputs.max_blogs       || '10' }}
+        run: node scripts/deliver-feed.js
