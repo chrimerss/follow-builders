@@ -1,9 +1,9 @@
 name: Deliver Feed to Telegram
 
 on:
-  # Daily at 7:00 AM UTC — upstream feed generation runs at 6:00 AM
+  # Daily at 9AM MDT — upstream feed generation runs at 6:00 AM
   schedule:
-    - cron: '0 7 * * *'
+    - cron: '0 15 * * *'
 
   # Manual trigger — for testing or on-demand delivery
   workflow_dispatch:
